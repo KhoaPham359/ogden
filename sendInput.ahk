@@ -1,105 +1,122 @@
-;Gui when nr, pop and others
+; List = clothing store|medical products|funiture|skincare products|financial service|drugstore|driving course|English course|soccer page|education center|shoes|decorations|beauty center|game app|bacarat|lot|health care products|weight loss products|financial service|Hiup milk|MB Bank|houseware|dental care|Vietcombank|Viettinbank|sunscreen|dental care|loan service|foods|dermatology clinic|manual
 
-loadArray(ByRef array) {
-  arrayCount := 0
-  Loop, Read, %A_ScriptDir%\FreeFormResponse.txt ; This loop retrieves each line from the file, one at a time.
-  {
-    arrayCount += 1
-    array.Push(A_LoopReadLine) ; Append this line to the array.
-  }
-  return arrayCount
+iniFilePath := "options.ini"
+global OptionList := {}
+List := LoadListFromINI(iniFilePath)
+
+Gui -Caption +AlwaysOnTop
+gui font, s12
+Gui Margin, 2,2
+Gui Add, ListBox, x2 y2 r5 w240 vChoice, %List%
+Gui add, text, w200 vText
+getProductName(ByRef ProductName)
+{
+    gui show, x1200 y350
+    WinGet GuiID, ID, A                 ; ID of the GUI for ControlSend below
+    Text = 
+    c =
+    Loop
+    {
+        Text = %c%
+        GuiControl,,Text, search: %Text%
+        If ek in Up,Down                 ; navigate in the ListBox
+        ControlSend ListBox1, {%ek%}, ahk_id %GuiID%
+        Else {                           ; select bottom entry, then abbreviation
+            GuiControl ChooseString,Choice,manual    ;... to show it on top
+            GuiControl ChooseString,Choice,%c%
+            GuiControlGet Choice          ; get selected
+        }
+        Input k, I L1 M, {Enter}{Esc}{TAB}{BS}{Up}{Down}
+        StringTrimLeft ek, ErrorLevel, 7 ; Remove "Endkey:"
+    
+        If ek in Escape
+            exitapp                     ; exit
+        If ek = Enter
+        {
+            GuiControlGet Choice
+            if (Choice = "manual" && c = "")
+                Continue
+            Break
+        }
+        If ek = Backspace
+        {
+            StringTrimRight c,c,1         ; remove last char
+        }
+        c := c . k
+    }
+    GuiControlGet Choice 
+    gui submit
+    if (Choice = "manual")
+        ProductName := c
+    Else
+        ProductName := Choice
+    UpdateFrequency(ProductName)
 }
 
-getProductName(ByRef ProductName) {
-  OPTION_COUNT := 9
-  GUI_WIDTH := 260
-  GUI_HEIGHT := OPTION_COUNT * 40 + 10
-  BUTTON_WIDTH := 200
-  BUTTON_HEIGHT := 30
-
-  Gui, Add, Button, x30 y10 w%BUTTON_WIDTH% h%BUTTON_HEIGHT% g_ClothingStore, Clothing store
-  Gui, Add, Button, x30 y50 w%BUTTON_WIDTH% h%BUTTON_HEIGHT% g_MedicalProduct, Medical products 
-  Gui, Add, Button, x30 y90 w%BUTTON_WIDTH% h%BUTTON_HEIGHT% g_SkinCare, Skincare products 
-  Gui, Add, Button, x30 y130 w%BUTTON_WIDTH% h%BUTTON_HEIGHT% g_FinancialComp, Financial company
-  Gui, Add, Button, x30 y170 w%BUTTON_WIDTH% h%BUTTON_HEIGHT% g_EducationCenter, Education center
-  Gui, Add, Button, x30 y210 w%BUTTON_WIDTH% h%BUTTON_HEIGHT% g_Shoes, Shoes
-  Gui, Add, Button, x30 y250 w%BUTTON_WIDTH% h%BUTTON_HEIGHT% g_Decoration, Decoration products
-  Gui, Add, Button, x30 y290 w%BUTTON_WIDTH% h%BUTTON_HEIGHT% g_BeautyCenter, Beauty center
-  Gui, Add, Button, x30 y330 w%BUTTON_WIDTH% h%BUTTON_HEIGHT% g_Manual, Manual 
-  Gui, Show, w%GUI_WIDTH% h%GUI_HEIGHT%, Option
-  Suspend, on
-  pause
-  return
-
-  _ClothingStore:
-    Gui, hide
-    Suspend off
-    pause, off
-    ProductName = clothing store
-  return
-
-  _MedicalProduct:
-    Gui, hide
-    Suspend off
-    pause, off
-    ProductName = medical products
-  return
-
-  _SkinCare:
-    Gui, hide
-    Suspend off
-    pause, off
-    ProductName = skincare products
-  return
-
-  _FinancialComp: 
-    Gui, hide
-    Suspend off
-    pause, off
-    ProductName = financial company
-  return 
-  _EducationCenter:
-    Gui, hide
-    Suspend off
-    pause, off
-    ProductName = education center
-  return
-
-  _Shoes:
-    Gui, hide
-    Suspend off
-    pause, off
-    ProductName = shoes
-  return
-
-  _Decoration:
-    Gui, hide
-    Suspend off
-    pause, off
-    ProductName = decorations
-  return
-
-  _BeautyCenter:
-    Gui, hide
-    Suspend off
-    pause, off
-    ProductName = beauty center
-  return
-  
-  _Manual:
-    Gui, hide
-    Suspend off
-    pause, off
-    InputBox, ProductName, Product Name 
-    if ErrorLevel
-      ExitApp
-    if ProductName = 
+loadArray(ByRef array) {
+    arrayCount := 0
+    Loop, Read, %A_ScriptDir%\FreeFormResponse.txt ; This loop retrieves each line from the file, one at a time.
     {
-      MsgBox,,, Empty input! 
-      ExitApp
+        arrayCount += 1
+        array.Push(A_LoopReadLine) ; Append this line to the array.
     }
-  return
-  guiclose:
-  ExitApp
-  return
+    return arrayCount
+}
+
+LoadListFromINI(filePath) {
+    global OptionList
+    IniRead, sections, %filePath%
+    Loop, Parse, sections, `n, `r
+    {
+        section := A_LoopField
+        if (section != "")
+        {
+            IniRead, freq, %filePath%, %section%, frequency, 0
+            OptionList[section] := freq
+        }
+    }
+
+    ; Append "manual" option to the end of the list
+    OptionList["manual"] := 0
+    
+    ; Construct the final list string
+    options := ""
+    for option, freq in OptionList
+    {
+        options .= option "|"
+    }
+    return RTrim(options, "|")
+}
+
+UpdateFrequency(option) {
+    global OptionList, iniFilePath
+    if (OptionList.HasKey(option)) {
+        OptionList[option]++
+    } else {
+        OptionList[option] := 1
+    }
+    IniWrite, % OptionList[option], %iniFilePath%, %option%, frequency
+    global List := LoadListFromINI(iniFilePath)
+    GuiControl,, Choice, %List%
+}
+
+RemoveLowFrequencyOptions() {
+    global OptionList, iniFilePath
+
+    ; Iterate through OptionList to find options with frequency = 1
+    for option, freq in OptionList
+    {
+        if (freq = 1)
+        {
+            ; Remove option from OptionList
+            OptionList.Delete(option)
+            
+            ; Remove option from INI file
+            IniDelete, % iniFilePath, % option
+        }
+    }
+    
+    ; Rebuild the ListBox with updated options list (excluding removed options)
+    global List := LoadListFromINI(iniFilePath)
+    GuiControl,, Choice, %List%
 }
