@@ -1,5 +1,4 @@
 ; List = clothing store|medical products|funiture|skincare products|financial service|drugstore|driving course|English course|soccer page|education center|shoes|decorations|beauty center|game app|bacarat|lot|health care products|weight loss products|financial service|Hiup milk|MB Bank|houseware|dental care|Vietcombank|Viettinbank|sunscreen|dental care|loan service|foods|dermatology clinic|manual
-
 iniFilePath := "options.ini"
 global OptionList := {}
 List := LoadListFromINI(iniFilePath)
@@ -66,6 +65,7 @@ loadArray(ByRef array) {
 LoadListFromINI(filePath) {
     global OptionList
     IniRead, sections, %filePath%
+    totalFreq := 0
     Loop, Parse, sections, `n, `r
     {
         section := A_LoopField
@@ -73,12 +73,22 @@ LoadListFromINI(filePath) {
         {
             IniRead, freq, %filePath%, %section%, frequency, 0
             OptionList[section] := freq
+            totalFreq += freq
         }
     }
 
+    if (totalFreq >= 500)
+    {
+        RemoveLowFrequencyOptions()
+        ; Set frequencies to 1 for all options after cleanup
+        for option, _ in OptionList
+        {
+            OptionList[option] := 1
+            IniWrite, 1, %filePath%, %option%, frequency
+        }
+    }
     ; Append "manual" option to the end of the list
     OptionList["manual"] := 0
-    
     ; Construct the final list string
     options := ""
     for option, freq in OptionList
@@ -101,22 +111,14 @@ UpdateFrequency(option) {
 }
 
 RemoveLowFrequencyOptions() {
+    msgbox,,, remove
     global OptionList, iniFilePath
-
-    ; Iterate through OptionList to find options with frequency = 1
     for option, freq in OptionList
     {
         if (freq = 1)
         {
-            ; Remove option from OptionList
             OptionList.Delete(option)
-            
-            ; Remove option from INI file
-            IniDelete, % iniFilePath, % option
+            IniDelete, %iniFilePath%, %option%
         }
     }
-    
-    ; Rebuild the ListBox with updated options list (excluding removed options)
-    global List := LoadListFromINI(iniFilePath)
-    GuiControl,, Choice, %List%
 }
