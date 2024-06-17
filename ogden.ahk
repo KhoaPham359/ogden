@@ -3,7 +3,7 @@ SetTitleMatchMode, 2
 ;#IfWinActive - Google Chrome
 #SingleInstance, force
 DELAY_TIME := 50 ;second
-
+CoordMode, mouse, Screen
 array := []
 arrayCount:= loadArray(array)
 if (arrayCount = 0) { 
